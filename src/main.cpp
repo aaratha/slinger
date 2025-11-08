@@ -4,15 +4,20 @@
 #define NUM_POINTS 20
 #define BALL_RADIUS 10.0f
 #define POINT_SPACING 10.0f
-#define GRAVITY 3000.0f
+#define GRAVITY 1000.0f
 #define DT 0.016f
 #define CONSTRAINT_ITERATIONS 8
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define DAMPING 0.99f
+#define AIR_RESISTANCE 0.001f
 
 SDL_FPoint operator*(float scalar, const SDL_FPoint &point) {
   return SDL_FPoint{scalar * point.x, scalar * point.y};
+}
+
+SDL_FPoint operator/(const SDL_FPoint &point, float scalar) {
+  return SDL_FPoint{point.x / scalar, point.y / scalar};
 }
 
 SDL_FPoint operator+(const SDL_FPoint &a, const SDL_FPoint &b) {
@@ -27,6 +32,12 @@ SDL_FPoint &operator+=(SDL_FPoint &a, const SDL_FPoint &b) {
   a.x += b.x;
   a.y += b.y;
   return a;
+}
+
+float point_distance(const SDL_FPoint &a, const SDL_FPoint &b) {
+  float dx = a.x - b.x;
+  float dy = a.y - b.y;
+  return sqrtf(dx * dx + dy * dy);
 }
 
 void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
@@ -45,6 +56,8 @@ void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
 class Rope {
   SDL_FPoint points[NUM_POINTS];
   SDL_FPoint prevPoints[NUM_POINTS];
+  float masses[NUM_POINTS];
+  bool anchored = false;
 
 public:
   Rope() {
@@ -53,19 +66,43 @@ public:
                        i * POINT_SPACING,
                    WINDOW_HEIGHT / 2.0f};
       prevPoints[i] = points[i];
+      if (i == NUM_POINTS - 1)
+        masses[i] = 1.0f; // Last point is the ball
+      else
+        masses[i] = 0.1f; // Other points are lighter
     }
   }
 
-  void update(float targetX, float targetY) {
+  void update(SDL_FPoint mousePos, bool isDragging) {
     // First point follows the target
-    points[0].x = targetX;
-    points[0].y = targetY;
+    SDL_FPoint G = {0.0f, GRAVITY};
 
-    // Apply gravity
-    for (int i = 1; i < NUM_POINTS; ++i) {
+    if (isDragging) {
+      if (!anchored) {
+        points[0] += 0.2 * (mousePos - points[0]);
+        if (point_distance(points[0], mousePos) < 4.0f)
+          anchored = true;
+      } else {
+        points[0] = mousePos;
+        prevPoints[0] = points[0]; // <-- resets motion to zero
+      }
+    } else {
+      anchored = false;
+    }
+
+    // Apply forces
+    for (int i = (isDragging ? 1 : 0); i < NUM_POINTS; ++i) {
+      SDL_FPoint v = (points[i] - prevPoints[i]) / DT;
+      float v_mag = sqrtf(v.x * v.x + v.y * v.y);
+      SDL_FPoint v_dir = v_mag > 0 ? v / v_mag : SDL_FPoint{0, 0};
+
+      SDL_FPoint f_drag = -AIR_RESISTANCE * v_mag * v_dir;
+      SDL_FPoint f = masses[i] * G + f_drag;
+
+      SDL_FPoint a = f / masses[i];
+
       SDL_FPoint temp = points[i];
-      points[i] += DAMPING * (points[i] - prevPoints[i]) +
-                   GRAVITY * DT * DT * SDL_FPoint{0.0f, 1.0f};
+      points[i] += DAMPING * (points[i] - prevPoints[i]) + DT * DT * a;
       prevPoints[i] = temp;
     }
 
@@ -83,7 +120,7 @@ public:
         float offsetX = dx * 0.5f * diff;
         float offsetY = dy * 0.5f * diff;
 
-        if (i != 0) {
+        if (!(isDragging && i == 0)) {
           p1.x += offsetX;
           p1.y += offsetY;
         }
@@ -117,6 +154,7 @@ int main(int, char **) {
 
   bool running = true;
   int mouseX = 0, mouseY = 0;
+  bool isDragging = false;
 
   while (running) {
     SDL_Event event;
@@ -126,10 +164,20 @@ int main(int, char **) {
       else if (event.type == SDL_EVENT_MOUSE_MOTION) {
         mouseX = event.motion.x;
         mouseY = event.motion.y;
+      } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          isDragging = true;
+        }
+      } else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          isDragging = false;
+        }
       }
     }
 
-    rope.update(static_cast<float>(mouseX), static_cast<float>(mouseY));
+    SDL_FPoint mousePos = {static_cast<float>(mouseX),
+                           static_cast<float>(mouseY)};
+    rope.update(mousePos, isDragging);
 
     SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
     SDL_RenderClear(renderer);
