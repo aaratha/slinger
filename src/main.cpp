@@ -86,22 +86,33 @@ public:
       SDL_DestroyTexture(layer.texture);
   }
 
-  void draw(SDL_Renderer *renderer, float dt) {
-    SDL_FRect src = {0, 0, 512, 256};
-    SDL_FRect dest = {0, 0, 512, 256};
+  void draw(SDL_Renderer *renderer) {
+    int winW, winH;
+    SDL_GetRenderOutputSize(renderer, &winW, &winH);
 
     for (auto &layer : layers) {
-      // update offset
-      layer.offset += layer.scrollSpeed * dt;
-      if (layer.offset > 512)
-        layer.offset -= 512; // wrap-around
+      float texW, texH;
+      SDL_GetTextureSize(layer.texture, &texW, &texH);
 
-      // draw twice for seamless wrap
-      dest.x = -layer.offset;
-      dest.y = 0;
+      // Update scroll
+      layer.offset += layer.scrollSpeed;
+      if (layer.offset > texW)
+        layer.offset -= texW;
+
+      // Destination rect — scaled to full window height
+      float scale = fmax((float)winW / texW, (float)winH / texH);
+      float drawW = texW * scale;
+      float drawH = texH * scale;
+
+      SDL_FRect dest = {-layer.offset, 0, drawW, drawH};
+
+      // Source rect cropped proportionally (so aspect ratio holds)
+      SDL_FRect src = {0, 0, (float)texW, (float)texH};
+
+      // Draw two tiles for seamless horizontal wrap
       SDL_RenderTexture(renderer, layer.texture, &src, &dest);
 
-      dest.x = -layer.offset + 512;
+      dest.x += winW;
       SDL_RenderTexture(renderer, layer.texture, &src, &dest);
     }
   }
@@ -240,7 +251,7 @@ int main(int, char **) {
 
     SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
 
-    bg.draw(renderer, DT);
+    bg.draw(renderer);
     rope.draw(renderer);
 
     SDL_RenderPresent(renderer);
