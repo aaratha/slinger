@@ -23,8 +23,10 @@ SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
 SDL_FPoint Rope::get_anchor() { return points[0]; }
 
 void Rope::solve_collisions(SDL_FPoint *point) {
-  if (point->y >= gGameState.winH) {
-    float diff = point->y - gGameState.winH;
+  int margin =
+      30; // pixels of margin between bottom of frame and collision edge
+  if (point->y >= gGameState.winH - margin) {
+    float diff = point->y - (gGameState.winH - margin);
     point->y -= diff;
   }
 }

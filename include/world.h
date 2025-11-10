@@ -8,7 +8,8 @@
 struct BGLayer {
   SDL_Texture *texture;
   float scrollSpeed;
-  float offset; // scroll offset
+  float offsetX; // scroll offset
+  float offsetY; // scroll offset
 };
 
 class Background {
@@ -18,10 +19,12 @@ class Background {
       "assets/background/layer4.png", "assets/background/layer5.png",
   };
 
-  const float scrollSpeeds[6] = {0.1f, 0.3f, 0.6f, 1.0f, 1.5f, 2.0f};
+  const float scrollSpeeds[6] = {0.06f, 0.2f, 0.4f, 0.65f, 1.0f, 1.33f};
   BGLayer layers[6];
 
 public:
+  bool load(SDL_Renderer *renderer);
+
   Background(SDL_Renderer *renderer);
 
   ~Background();
