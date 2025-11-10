@@ -52,6 +52,60 @@ void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
     }
   }
 }
+struct BGLayer {
+  SDL_Texture *texture;
+  float scrollSpeed;
+  float offset; // scroll offset
+};
+
+class Background {
+
+  const char *layerFiles[6] = {
+      "assets/background/layer0.png", "assets/background/layer1.png",
+      "assets/background/layer2.png", "assets/background/layer3.png",
+      "assets/background/layer4.png", "assets/background/layer5.png",
+  };
+
+  const float scrollSpeeds[6] = {0.1f, 0.3f, 0.6f, 1.0f, 1.5f, 2.0f};
+  BGLayer layers[6];
+
+public:
+  Background(SDL_Renderer *renderer) {
+    for (int i = 0; i < 6; ++i) {
+      BGLayer layer;
+      SDL_Surface *surface = SDL_LoadPNG(layerFiles[i]);
+      layer.texture = SDL_CreateTextureFromSurface(renderer, surface);
+      layer.scrollSpeed = scrollSpeeds[i];
+      layer.offset = 0.0f;
+      layers[i] = layer;
+    }
+  }
+
+  ~Background() {
+    for (auto &layer : layers)
+      SDL_DestroyTexture(layer.texture);
+  }
+
+  void draw(SDL_Renderer *renderer, float dt) {
+    SDL_FRect src = {0, 0, 512, 256};
+    SDL_FRect dest = {0, 0, 512, 256};
+
+    for (auto &layer : layers) {
+      // update offset
+      layer.offset += layer.scrollSpeed * dt;
+      if (layer.offset > 512)
+        layer.offset -= 512; // wrap-around
+
+      // draw twice for seamless wrap
+      dest.x = -layer.offset;
+      dest.y = 0;
+      SDL_RenderTexture(renderer, layer.texture, &src, &dest);
+
+      dest.x = -layer.offset + 512;
+      SDL_RenderTexture(renderer, layer.texture, &src, &dest);
+    }
+  }
+};
 
 class Rope {
   SDL_FPoint points[NUM_POINTS];
@@ -152,6 +206,8 @@ int main(int, char **) {
 
   Rope rope;
 
+  Background bg(renderer);
+
   bool running = true;
   int mouseX = 0, mouseY = 0;
   bool isDragging = false;
@@ -184,6 +240,7 @@ int main(int, char **) {
 
     SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
 
+    bg.draw(renderer, DT);
     rope.draw(renderer);
 
     SDL_RenderPresent(renderer);

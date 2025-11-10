@@ -25,6 +25,10 @@ add_executable(slinger ${SLINGER_SOURCES})
 # Link SDL3
 target_link_libraries(slinger PRIVATE SDL3::SDL3)
 
+# Copy assets folder to the build directory
+file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
+
+
 # Optionally: if you want to use SDL_main (for Win/macOS entry point)
 # target_link_libraries(slinger PRIVATE SDL3::SDL3main)
 
