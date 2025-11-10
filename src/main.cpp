@@ -94,26 +94,26 @@ public:
       float texW, texH;
       SDL_GetTextureSize(layer.texture, &texW, &texH);
 
-      // Update scroll
-      layer.offset += layer.scrollSpeed;
-      if (layer.offset > texW)
-        layer.offset -= texW;
-
-      // Destination rect — scaled to full window height
+      // Scale to fill screen
       float scale = fmax((float)winW / texW, (float)winH / texH);
       float drawW = texW * scale;
       float drawH = texH * scale;
 
-      SDL_FRect dest = {-layer.offset, 0, drawW, drawH};
+      // Scroll offset in *screen space*
+      layer.offset += layer.scrollSpeed;
+      if (layer.offset > drawW)
+        layer.offset -= drawW;
 
-      // Source rect cropped proportionally (so aspect ratio holds)
+      // Full texture src
       SDL_FRect src = {0, 0, (float)texW, (float)texH};
 
-      // Draw two tiles for seamless horizontal wrap
-      SDL_RenderTexture(renderer, layer.texture, &src, &dest);
+      // Draw first tile
+      SDL_FRect dest1 = {-layer.offset, 0, drawW, drawH};
+      SDL_RenderTexture(renderer, layer.texture, &src, &dest1);
 
-      dest.x += winW;
-      SDL_RenderTexture(renderer, layer.texture, &src, &dest);
+      // Draw second tile for seamless wrap
+      SDL_FRect dest2 = {drawW - layer.offset, 0, drawW, drawH};
+      SDL_RenderTexture(renderer, layer.texture, &src, &dest2);
     }
   }
 };
@@ -196,7 +196,8 @@ public:
   }
 
   void draw(SDL_Renderer *renderer) {
-    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 
     SDL_RenderLines(renderer, points, NUM_POINTS);
     draw_circle(renderer, static_cast<int>(points[NUM_POINTS - 1].x),
