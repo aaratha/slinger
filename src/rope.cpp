@@ -17,27 +17,12 @@ Rope::Rope() {
 Rope::~Rope() {}
 
 SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
+
 SDL_FPoint Rope::get_anchor() { return points[0]; }
 
-void Rope::update(SDL_FPoint mousePos, bool isDragging) {
-
-  // First point follows the target
+void Rope::solve_physics(bool isDragging) {
   SDL_FPoint G = {0.0f, GRAVITY};
 
-  if (isDragging) {
-    if (!anchored) {
-      points[0] += 0.2 * (mousePos - points[0]);
-      if (point_distance(points[0], mousePos) < 4.0f)
-        anchored = true;
-    } else {
-      points[0] = mousePos;
-      prevPoints[0] = points[0]; // <-- resets motion to zero
-    }
-  } else {
-    anchored = false;
-  }
-
-  // Apply forces
   for (int i = (isDragging ? 1 : 0); i < NUM_POINTS; ++i) {
     SDL_FPoint v = (points[i] - prevPoints[i]) / DT;
     float v_mag = sqrtf(v.x * v.x + v.y * v.y);
@@ -52,8 +37,9 @@ void Rope::update(SDL_FPoint mousePos, bool isDragging) {
     points[i] += DAMPING * (points[i] - prevPoints[i]) + DT * DT * a;
     prevPoints[i] = temp;
   }
+}
 
-  // Enforce constraints
+void Rope::solve_constraints(bool isDragging) {
   for (int iter = 0; iter < CONSTRAINT_ITERATIONS; ++iter) {
     for (int i = 0; i < NUM_POINTS - 1; ++i) {
       SDL_FPoint &p1 = points[i];
@@ -75,6 +61,30 @@ void Rope::update(SDL_FPoint mousePos, bool isDragging) {
       p2.y -= offsetY;
     }
   }
+}
+
+void Rope::update(SDL_FPoint mousePos, bool isDragging) {
+
+  // First point follows the target
+
+  if (isDragging) {
+    if (!anchored) {
+      points[0] += 0.2 * (mousePos - points[0]);
+      if (point_distance(points[0], mousePos) < 4.0f)
+        anchored = true;
+    } else {
+      points[0] = mousePos;
+      prevPoints[0] = points[0]; // <-- resets motion to zero
+    }
+  } else {
+    anchored = false;
+  }
+
+  // Apply forces
+  solve_physics(isDragging);
+
+  // Enforce constraints
+  solve_constraints(isDragging);
 }
 
 void Rope::draw(SDL_Renderer *renderer, Camera *camera) {

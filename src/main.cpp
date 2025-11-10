@@ -1,11 +1,8 @@
 #include <SDL3/SDL.h>
-#include <cmath>
 
 #include "camera.h"
-#include "utils.h"
-#include "world.h"
 #include "rope.h"
-
+#include "world.h"
 
 int main(int, char **) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {

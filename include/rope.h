@@ -2,8 +2,8 @@
 
 #include <SDL3/SDL.h>
 
-#include "utils.h"
 #include "camera.h"
+#include "utils.h"
 
 class Rope {
   SDL_FPoint points[NUM_POINTS];
@@ -17,6 +17,8 @@ public:
   ~Rope();
   SDL_FPoint get_end();
   SDL_FPoint get_anchor();
+  void solve_physics(bool isDragging);
+  void solve_constraints(bool isDragging);
   void update(SDL_FPoint mousePos, bool isDragging);
   void draw(SDL_Renderer *renderer, Camera *camera);
 };
