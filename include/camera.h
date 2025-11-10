@@ -9,9 +9,9 @@ public:
   Camera();
   ~Camera();
 
-  SDL_FPoint worldToScreen(const SDL_FPoint &world, int winW, int winH);
+  SDL_FPoint worldToScreen(const SDL_FPoint &world);
 
-  SDL_FPoint screenToWorld(const SDL_FPoint &screen, int winW, int winH) const;
+  SDL_FPoint screenToWorld(const SDL_FPoint &screen) const;
 
   SDL_FPoint get_pos();
 

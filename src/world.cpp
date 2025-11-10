@@ -1,4 +1,5 @@
 #include "world.h"
+#include "globals.h"
 
 Background::Background(SDL_Renderer *renderer) {
   for (int i = 0; i < 6; ++i) {
@@ -17,15 +18,13 @@ Background::~Background() {
 }
 
 void Background::draw(SDL_Renderer *renderer, Camera *camera) {
-  int winW, winH;
-  SDL_GetRenderOutputSize(renderer, &winW, &winH);
-
   for (auto &layer : layers) {
     float texW, texH;
     SDL_GetTextureSize(layer.texture, &texW, &texH);
 
     // Scale to fill screen
-    float scale = fmax((float)winW / texW, (float)winH / texH);
+    float scale =
+        fmax((float)gGameState.winW / texW, (float)gGameState.winH / texH);
     float drawW = texW * scale;
     float drawH = texH * scale;
 

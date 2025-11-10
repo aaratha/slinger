@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 
 #include "camera.h"
+#include "globals.h"
 #include "rope.h"
 #include "world.h"
 
@@ -18,14 +19,14 @@ int main(int, char **) {
   Background bg(renderer);
   Camera camera;
 
+  gGameState.winW = 800;
+  gGameState.winH = 600;
+
   bool running = true;
   int mouseX = 0, mouseY = 0;
   bool isDragging = false;
 
   while (running) {
-    int winW, winH;
-    SDL_GetRenderOutputSize(renderer, &winW, &winH);
-
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_EVENT_QUIT)
@@ -45,7 +46,7 @@ int main(int, char **) {
     }
 
     SDL_FPoint mouseScreen = {(float)mouseX, (float)mouseY};
-    SDL_FPoint mouseWorld = camera.screenToWorld(mouseScreen, winW, winH);
+    SDL_FPoint mouseWorld = camera.screenToWorld(mouseScreen);
 
     rope.update(mouseWorld, isDragging);
     if (!isDragging)

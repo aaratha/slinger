@@ -17,6 +17,7 @@ public:
   ~Rope();
   SDL_FPoint get_end();
   SDL_FPoint get_anchor();
+  void solve_collisions(SDL_FPoint point);
   void solve_physics(bool isDragging);
   void solve_constraints(bool isDragging);
   void update(SDL_FPoint mousePos, bool isDragging);

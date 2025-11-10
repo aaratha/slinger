@@ -1,4 +1,6 @@
 #include "rope.h"
+#include "SDL3/SDL_oldnames.h"
+#include "globals.h"
 
 Rope::Rope() {
   for (int i = 0; i < NUM_POINTS; ++i) {
@@ -20,6 +22,13 @@ SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
 
 SDL_FPoint Rope::get_anchor() { return points[0]; }
 
+void Rope::solve_collisions(SDL_FPoint point) {
+  if (point.y >= gGameState.winH) {
+    float diff = point.y - gGameState.winH;
+    point.y += diff;
+  }
+}
+
 void Rope::solve_physics(bool isDragging) {
   SDL_FPoint G = {0.0f, GRAVITY};
 
@@ -36,6 +45,8 @@ void Rope::solve_physics(bool isDragging) {
     SDL_FPoint temp = points[i];
     points[i] += DAMPING * (points[i] - prevPoints[i]) + DT * DT * a;
     prevPoints[i] = temp;
+
+    solve_collisions(points[i]);
   }
 }
 
@@ -88,11 +99,8 @@ void Rope::update(SDL_FPoint mousePos, bool isDragging) {
 }
 
 void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
-  int winW, winH;
-  SDL_GetRenderOutputSize(renderer, &winW, &winH);
-
   for (int i = 0; i < NUM_POINTS; i++) {
-    screenPoints[i] = camera->worldToScreen(points[i], winW, winH);
+    screenPoints[i] = camera->worldToScreen(points[i]);
   }
 
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
