@@ -22,10 +22,10 @@ SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
 
 SDL_FPoint Rope::get_anchor() { return points[0]; }
 
-void Rope::solve_collisions(SDL_FPoint point) {
-  if (point.y >= gGameState.winH) {
-    float diff = point.y - gGameState.winH;
-    point.y += diff;
+void Rope::solve_collisions(SDL_FPoint *point) {
+  if (point->y >= gGameState.winH) {
+    float diff = point->y - gGameState.winH;
+    point->y -= diff;
   }
 }
 
@@ -46,7 +46,7 @@ void Rope::solve_physics(bool isDragging) {
     points[i] += DAMPING * (points[i] - prevPoints[i]) + DT * DT * a;
     prevPoints[i] = temp;
 
-    solve_collisions(points[i]);
+    solve_collisions(&points[i]);
   }
 }
 
