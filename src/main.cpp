@@ -9,8 +9,9 @@
 #define CONSTRAINT_ITERATIONS 8
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#define DAMPING 0.99f
+#define DAMPING 1.0f
 #define AIR_RESISTANCE 0.001f
+#define CAMERA_LERP 0.2f
 
 SDL_FPoint operator*(float scalar, const SDL_FPoint &point) {
   return SDL_FPoint{scalar * point.x, scalar * point.y};
@@ -34,6 +35,29 @@ SDL_FPoint &operator+=(SDL_FPoint &a, const SDL_FPoint &b) {
   return a;
 }
 
+SDL_FPoint lerp(SDL_FPoint a, SDL_FPoint b, float t) { return a + t * (b - a); }
+
+class Camera {
+  SDL_FPoint pos = {0.0f, 0.0f};
+
+public:
+  inline SDL_FPoint worldToScreen(const SDL_FPoint &world, int winW, int winH) {
+    return {world.x - pos.x + winW / 2.0f, world.y - pos.y + winH / 2.0f};
+  }
+
+  inline SDL_FPoint screenToWorld(const SDL_FPoint &screen, int winW,
+                                  int winH) const {
+    return {screen.x + pos.x - winW / 2.0f, screen.y + pos.y - winH / 2.0f};
+  }
+
+  SDL_FPoint get_pos() { return pos; }
+
+  void update(SDL_FPoint anchor, SDL_FPoint end) {
+    SDL_FPoint target = (anchor + end) / 2;
+    pos = lerp(pos, target, 0.1);
+  }
+};
+
 float point_distance(const SDL_FPoint &a, const SDL_FPoint &b) {
   float dx = a.x - b.x;
   float dy = a.y - b.y;
@@ -52,6 +76,7 @@ void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
     }
   }
 }
+
 struct BGLayer {
   SDL_Texture *texture;
   float scrollSpeed;
@@ -59,7 +84,6 @@ struct BGLayer {
 };
 
 class Background {
-
   const char *layerFiles[6] = {
       "assets/background/layer0.png", "assets/background/layer1.png",
       "assets/background/layer2.png", "assets/background/layer3.png",
@@ -86,7 +110,7 @@ public:
       SDL_DestroyTexture(layer.texture);
   }
 
-  void draw(SDL_Renderer *renderer) {
+  void draw(SDL_Renderer *renderer, Camera *camera) {
     int winW, winH;
     SDL_GetRenderOutputSize(renderer, &winW, &winH);
 
@@ -100,9 +124,13 @@ public:
       float drawH = texH * scale;
 
       // Scroll offset in *screen space*
-      layer.offset += layer.scrollSpeed;
-      if (layer.offset > drawW)
-        layer.offset -= drawW;
+      float cameraX = camera->get_pos().x;
+      float layerScroll = layer.scrollSpeed * 0.5 * cameraX;
+
+      // Wrap around so the layer repeats seamlessly
+      layer.offset = fmod(layerScroll, drawW);
+      if (layer.offset < 0)
+        layer.offset += drawW; // handle negative positions
 
       // Full texture src
       SDL_FRect src = {0, 0, (float)texW, (float)texH};
@@ -121,6 +149,7 @@ public:
 class Rope {
   SDL_FPoint points[NUM_POINTS];
   SDL_FPoint prevPoints[NUM_POINTS];
+  SDL_FPoint screenPoints[NUM_POINTS];
   float masses[NUM_POINTS];
   bool anchored = false;
 
@@ -131,6 +160,7 @@ public:
                        i * POINT_SPACING,
                    WINDOW_HEIGHT / 2.0f};
       prevPoints[i] = points[i];
+      screenPoints[i] = points[i];
       if (i == NUM_POINTS - 1)
         masses[i] = 1.0f; // Last point is the ball
       else
@@ -138,7 +168,11 @@ public:
     }
   }
 
+  SDL_FPoint get_end() { return points[NUM_POINTS - 1]; }
+  SDL_FPoint get_anchor() { return points[0]; }
+
   void update(SDL_FPoint mousePos, bool isDragging) {
+
     // First point follows the target
     SDL_FPoint G = {0.0f, GRAVITY};
 
@@ -195,13 +229,20 @@ public:
     }
   }
 
-  void draw(SDL_Renderer *renderer) {
+  void draw(SDL_Renderer *renderer, Camera *camera) {
+    int winW, winH;
+    SDL_GetRenderOutputSize(renderer, &winW, &winH);
+
+    for (int i = 0; i < NUM_POINTS; i++) {
+      screenPoints[i] = camera->worldToScreen(points[i], winW, winH);
+    }
+
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 
-    SDL_RenderLines(renderer, points, NUM_POINTS);
-    draw_circle(renderer, static_cast<int>(points[NUM_POINTS - 1].x),
-                static_cast<int>(points[NUM_POINTS - 1].y),
+    SDL_RenderLines(renderer, screenPoints, NUM_POINTS);
+    draw_circle(renderer, static_cast<int>(screenPoints[NUM_POINTS - 1].x),
+                static_cast<int>(screenPoints[NUM_POINTS - 1].y),
                 static_cast<int>(BALL_RADIUS));
   }
 };
@@ -217,14 +258,17 @@ int main(int, char **) {
   SDL_Renderer *renderer = SDL_CreateRenderer(window, nullptr);
 
   Rope rope;
-
   Background bg(renderer);
+  Camera camera;
 
   bool running = true;
   int mouseX = 0, mouseY = 0;
   bool isDragging = false;
 
   while (running) {
+    int winW, winH;
+    SDL_GetRenderOutputSize(renderer, &winW, &winH);
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_EVENT_QUIT)
@@ -243,17 +287,20 @@ int main(int, char **) {
       }
     }
 
-    SDL_FPoint mousePos = {static_cast<float>(mouseX),
-                           static_cast<float>(mouseY)};
-    rope.update(mousePos, isDragging);
+    SDL_FPoint mouseScreen = {(float)mouseX, (float)mouseY};
+    SDL_FPoint mouseWorld = camera.screenToWorld(mouseScreen, winW, winH);
+
+    rope.update(mouseWorld, isDragging);
+    if (!isDragging)
+      camera.update(rope.get_anchor(), rope.get_end());
 
     SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
 
-    bg.draw(renderer);
-    rope.draw(renderer);
+    bg.draw(renderer, &camera);
+    rope.draw(renderer, &camera);
 
     SDL_RenderPresent(renderer);
 
