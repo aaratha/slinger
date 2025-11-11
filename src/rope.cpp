@@ -4,9 +4,9 @@
 
 Rope::Rope() {
   for (int i = 0; i < NUM_POINTS; ++i) {
-    points[i] = {WINDOW_WIDTH / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
+    points[i] = {gGS.winW / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
                      i * POINT_SPACING,
-                 WINDOW_HEIGHT / 2.0f};
+                 gGS.winH / 2.0f};
     prevPoints[i] = points[i];
     screenPoints[i] = points[i];
     if (i == NUM_POINTS - 1)
@@ -45,7 +45,7 @@ void Rope::solve_physics() {
     float friction_dir = (v_dir.x > 0 ? -1.0f : 1.0f);
 
     float drag_coeff =
-        (gGS.isDragging ? AIR_RESISTANCE * 0.3f : AIR_RESISTANCE);
+        (gGS.isDragging ? AIR_RESISTANCE * 0.8f : AIR_RESISTANCE);
     SDL_FPoint f_drag = -drag_coeff * v_mag * v_dir;
     SDL_FPoint f = masses[i] * G + f_drag + (friction_dir * f_friction);
 
@@ -165,7 +165,7 @@ void Rope::backward_constraints() {
 
     // Don't move the fixed end ball
     if (i + 1 == NUM_POINTS - 1) {
-      float ball_move_fraction = 0.005f; // small fraction of constraint offset
+      float ball_move_fraction = 0.01f; // small fraction of constraint offset
       p2.x -= offsetX * ball_move_fraction;
       p2.y -= offsetY * ball_move_fraction;
     } else {

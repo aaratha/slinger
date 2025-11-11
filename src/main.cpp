@@ -11,17 +11,17 @@ int main(int, char **) {
     return 1;
   }
 
-  SDL_Window *window =
-      SDL_CreateWindow("Circle Follow", 800, 600, SDL_WINDOW_RESIZABLE);
+  gGS.winW = 1000;
+  gGS.winH = 720;
+  gGS.isDragging = false;
+
+  SDL_Window *window = SDL_CreateWindow("Circle Follow", gGS.winW, gGS.winH,
+                                        SDL_WINDOW_RESIZABLE);
   SDL_Renderer *renderer = SDL_CreateRenderer(window, nullptr);
 
   Rope rope;
   Background bg(renderer);
   Camera camera;
-
-  gGS.winW = 800;
-  gGS.winH = 600;
-  gGS.isDragging = false;
 
   bool running = true;
   int mouseX = 0, mouseY = 0;
@@ -42,6 +42,9 @@ int main(int, char **) {
         if (event.button.button == SDL_BUTTON_LEFT) {
           gGS.isDragging = false;
         }
+      } else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+        gGS.winW = event.window.data1;
+        gGS.winH = event.window.data2;
       }
     }
 
