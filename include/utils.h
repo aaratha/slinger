@@ -14,6 +14,8 @@
 #define DAMPING 1.0f
 #define AIR_RESISTANCE 0.01f
 #define CAMERA_LERP 0.2f
+#define FLOOR_FRICTION 2000.0f;
+#define FLOOR_HEIGHT 30
 
 SDL_FPoint operator*(float scalar, const SDL_FPoint &point);
 
