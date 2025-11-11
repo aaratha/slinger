@@ -2,6 +2,8 @@
 #include "globals.h"
 #include "utils.h"
 
+#include <algorithm>
+
 Rope::Rope() {
   for (int i = 0; i < NUM_POINTS; ++i) {
     points[i] = {gGS.winW / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
@@ -218,7 +220,18 @@ void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
     screenPoints[i] = camera->worldToScreen(points[i]);
   }
 
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  float ropeY = get_end().y;
+  float space_y = -(10000.0 - gGS.winH);
+  float transition_y = space_y + 800.0f;
+  if (ropeY <= transition_y) {
+
+    float clamped = std::max(ropeY, space_y);
+
+    // Map linearly from 800 → 950 to 0 → 255
+    brightness =
+        (int)((transition_y - clamped) / (transition_y - space_y) * 255.0f);
+  }
+  SDL_SetRenderDrawColor(renderer, brightness, brightness, brightness, 255);
   // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 
   SDL_RenderLines(renderer, screenPoints, NUM_POINTS);

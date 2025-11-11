@@ -46,7 +46,7 @@ void Background::draw(SDL_Renderer *renderer, Camera *camera) {
     float texW, texH;
     SDL_GetTextureSize(layer.texture, &texW, &texH);
 
-    float scale = static_cast<float>(gGS.winW) / texW;
+    float scale = 1.5f; // static_cast<float>(gGS.winW) / texW;
     float drawW = texW * scale;
     float drawH = texH * scale;
 
@@ -69,14 +69,16 @@ void Background::draw(SDL_Renderer *renderer, Camera *camera) {
 
     SDL_FRect src = {0, 0, texW, texH};
 
-    SDL_FRect dests[4] = {
-        {-layer.offsetX, drawY, drawW, drawH},
-        {drawW - layer.offsetX, drawY, drawW, drawH},
-        {-layer.offsetX, drawY + drawH, drawW, drawH},
-        {drawW - layer.offsetX, drawY + drawH, drawW, drawH},
-    };
+    // Compute how many horizontal tiles are needed
+    int tilesX = (int)ceil(gGS.winW / drawW) + 1;
 
-    for (auto &dest : dests)
+    for (int x = 0; x < tilesX; ++x) {
+      SDL_FRect dest;
+      dest.x = -layer.offsetX + x * drawW; // horizontal tiling
+      dest.y = drawY;                      // vertical fixed
+      dest.w = drawW;
+      dest.h = drawH;
       SDL_RenderTexture(renderer, layer.texture, &src, &dest);
+    }
   }
 }

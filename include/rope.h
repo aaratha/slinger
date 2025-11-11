@@ -11,6 +11,7 @@ class Rope {
   SDL_FPoint screenPoints[NUM_POINTS];
   float masses[NUM_POINTS];
   bool anchored = false;
+  int brightness = 0;
 
 public:
   Rope();

@@ -55,7 +55,7 @@ int main(int, char **) {
 
     camera.update(rope.get_anchor(), rope.get_end());
 
-    SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
