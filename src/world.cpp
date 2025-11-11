@@ -46,7 +46,7 @@ void Background::draw(SDL_Renderer *renderer, Camera *camera) {
     float texW, texH;
     SDL_GetTextureSize(layer.texture, &texW, &texH);
 
-    float scale = static_cast<float>(gGameState.winW) / texW;
+    float scale = static_cast<float>(gGS.winW) / texW;
     float drawW = texW * scale;
     float drawH = texH * scale;
 
@@ -60,11 +60,11 @@ void Background::draw(SDL_Renderer *renderer, Camera *camera) {
       layer.offsetX += drawW;
 
     // Vertical parallax: adjust relative to camera's minimum y
-    float camMinY = gGameState.winH / 2.0f;
+    float camMinY = gGS.winH / 2.0f;
     layer.offsetY = scrollFactor * (camera_pos.y - camMinY);
 
     // Base position aligns bottom edge when camera at minY
-    float baseY = gGameState.winH - drawH;
+    float baseY = gGS.winH - drawH;
     float drawY = baseY - layer.offsetY;
 
     SDL_FRect src = {0, 0, texW, texH};

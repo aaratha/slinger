@@ -2,6 +2,7 @@
 
 typedef struct {
   int winW, winH;
+  bool isDragging;
 } GameState;
 
-extern GameState gGameState;
+extern GameState gGS;

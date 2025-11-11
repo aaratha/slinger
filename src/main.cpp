@@ -19,12 +19,12 @@ int main(int, char **) {
   Background bg(renderer);
   Camera camera;
 
-  gGameState.winW = 800;
-  gGameState.winH = 600;
+  gGS.winW = 800;
+  gGS.winH = 600;
+  gGS.isDragging = false;
 
   bool running = true;
   int mouseX = 0, mouseY = 0;
-  bool isDragging = false;
 
   while (running) {
     SDL_Event event;
@@ -36,11 +36,11 @@ int main(int, char **) {
         mouseY = event.motion.y;
       } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         if (event.button.button == SDL_BUTTON_LEFT) {
-          isDragging = true;
+          gGS.isDragging = true;
         }
       } else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
         if (event.button.button == SDL_BUTTON_LEFT) {
-          isDragging = false;
+          gGS.isDragging = false;
         }
       }
     }
@@ -48,9 +48,9 @@ int main(int, char **) {
     SDL_FPoint mouseScreen = {(float)mouseX, (float)mouseY};
     SDL_FPoint mouseWorld = camera.screenToWorld(mouseScreen);
 
-    rope.update(mouseWorld, isDragging);
-    if (!isDragging)
-      camera.update(rope.get_anchor(), rope.get_end());
+    rope.update(mouseWorld);
+
+    camera.update(rope.get_anchor(), rope.get_end());
 
     SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
     SDL_RenderClear(renderer);

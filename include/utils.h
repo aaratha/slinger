@@ -8,7 +8,7 @@
 #define POINT_SPACING 10.0f
 #define GRAVITY 1000.0f
 #define DT 0.016f
-#define CONSTRAINT_ITERATIONS 8
+#define CONSTRAINT_ITERATIONS 80
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define DAMPING 1.0f
@@ -25,7 +25,8 @@ SDL_FPoint operator-(const SDL_FPoint &a, const SDL_FPoint &b);
 
 SDL_FPoint &operator+=(SDL_FPoint &a, const SDL_FPoint &b);
 
-SDL_FPoint lerp(SDL_FPoint a, SDL_FPoint b, float t);
+float lerp1D(float a, float b, float t);
+SDL_FPoint lerp2D(SDL_FPoint a, SDL_FPoint b, float t);
 
 float point_distance(const SDL_FPoint &a, const SDL_FPoint &b);
 

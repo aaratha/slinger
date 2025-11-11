@@ -1,3 +1,3 @@
 #include "globals.h"
 
-GameState gGameState;
+GameState gGS;

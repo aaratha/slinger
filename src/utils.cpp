@@ -22,7 +22,11 @@ SDL_FPoint &operator+=(SDL_FPoint &a, const SDL_FPoint &b) {
   return a;
 }
 
-SDL_FPoint lerp(SDL_FPoint a, SDL_FPoint b, float t) { return a + t * (b - a); }
+float lerp1D(float a, float b, float t) { return a + t * (b - a); }
+
+SDL_FPoint lerp2D(SDL_FPoint a, SDL_FPoint b, float t) {
+  return a + t * (b - a);
+}
 
 float point_distance(const SDL_FPoint &a, const SDL_FPoint &b) {
   float dx = a.x - b.x;

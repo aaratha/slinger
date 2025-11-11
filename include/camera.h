@@ -4,6 +4,7 @@
 
 class Camera {
   SDL_FPoint pos;
+  float speed;
 
 public:
   Camera();
