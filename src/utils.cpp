@@ -16,9 +16,21 @@ SDL_FPoint operator-(const SDL_FPoint &a, const SDL_FPoint &b) {
   return SDL_FPoint{a.x - b.x, a.y - b.y};
 }
 
-SDL_FPoint &operator+=(SDL_FPoint &a, const SDL_FPoint &b) {
+SDL_FPoint operator+=(SDL_FPoint &a, const SDL_FPoint &b) {
   a.x += b.x;
   a.y += b.y;
+  return a;
+}
+
+SDL_FPoint operator-=(SDL_FPoint &a, const SDL_FPoint &b) {
+  a.x -= b.x;
+  a.y -= b.y;
+  return a;
+}
+
+SDL_FPoint operator*=(SDL_FPoint &a, float scalar) {
+  a.x *= scalar;
+  a.y *= scalar;
   return a;
 }
 

@@ -14,7 +14,7 @@ Rope::Rope() {
     if (i == NUM_POINTS - 1)
       masses[i] = 10.0f; // Last point is the ball
     else
-      masses[i] = 0.01f; // Other points are lighter
+      masses[i] = 0.0005f; // Other points are lighter
   }
 }
 
@@ -36,26 +36,36 @@ void Rope::solve_physics() {
 
   for (int i = (gGS.isDragging ? 1 : 0); i < NUM_POINTS; ++i) {
 
-    SDL_FPoint f_friction = {0.0f, 0.0f};
-    if (points[i].y >= gGS.winH - FLOOR_HEIGHT)
-      f_friction.x = masses[i] * FLOOR_FRICTION;
+    SDL_FPoint f = masses[i] * G;
 
-    SDL_FPoint v = (points[i] - prevPoints[i]) / DT;
-    float v_mag = sqrtf(v.x * v.x + v.y * v.y);
-    SDL_FPoint v_dir = v_mag > 0 ? v / v_mag : SDL_FPoint{0, 0};
+    // --- air drag ---
+    SDL_FPoint vel = points[i] - prevPoints[i];
+    float vMag = sqrtf(vel.x * vel.x + vel.y * vel.y);
+    if (vMag > 1e-4f) {
+      SDL_FPoint vDir = {vel.x / vMag, vel.y / vMag};
+      float dragCoeff = gGS.isDragging ? AIR_RESISTANCE * 0.8f : AIR_RESISTANCE;
+      f += -dragCoeff * vMag * vDir;
+    }
 
-    float friction_dir = (v_dir.x > 0 ? -1.0f : 1.0f);
+    // --- floor friction (horizontal only) ---
+    if (points[i].y >= gGS.winH - FLOOR_HEIGHT) {
+      // Only apply if moving horizontally
+      float vx = vel.x;
+      if (fabsf(vx) > 1e-5f) {
+        // Oppose motion, proportional to sign of vx
+        float ff = FLOOR_FRICTION;
+        float frictionForce = -ff * masses[i] * (vx > 0 ? 1.0f : -1.0f);
+        f.x += frictionForce;
+      }
+    }
 
-    float drag_coeff =
-        (gGS.isDragging ? AIR_RESISTANCE * 0.8f : AIR_RESISTANCE);
-    SDL_FPoint f_drag = -drag_coeff * v_mag * v_dir;
-    SDL_FPoint f = masses[i] * G + f_drag + (friction_dir * f_friction);
-
+    // --- integrate ---
+    vel *= DAMPING;
     SDL_FPoint a = f / masses[i];
 
-    SDL_FPoint temp = points[i];
-    points[i] += DAMPING * (points[i] - prevPoints[i]) + DT * DT * a;
-    prevPoints[i] = temp;
+    SDL_FPoint newPos = points[i] + vel + DT * DT * a;
+    prevPoints[i] = points[i];
+    points[i] = newPos;
 
     solve_collisions(&points[i]);
   }
@@ -84,74 +94,6 @@ void Rope::forward_constraints() {
   }
 }
 
-// Experiments with mass-aware constraints and additional backward constraints
-//--------------------------------
-// void Rope::forward_constraints() {
-//   // --- Forward pass with mass weighting ---
-//   for (int i = 0; i < NUM_POINTS - 1; ++i) {
-//     SDL_FPoint &p1 = points[i];
-//     SDL_FPoint &p2 = points[i + 1];
-//
-//     float dx = p2.x - p1.x;
-//     float dy = p2.y - p1.y;
-//     float dist = sqrtf(dx * dx + dy * dy);
-//     float diff = (dist - POINT_SPACING) / dist;
-//
-//     // Mass-aware offsets
-//     float m1 = masses[i];
-//     float m2 = masses[i + 1];
-//     float sum = m1 + m2;
-//
-//     float ratio1 = m2 / sum; // p1 moves more if p2 is heavy
-//     float ratio2 = m1 / sum; // p2 moves more if p1 is light
-//     // Soften the ratios by blending with 0.5 (equal split)
-//     float blend = 0.8f; // 0 = full 0.5, 1 = full mass weighting
-//     ratio1 = 0.5f * (1.0f - blend) + ratio1 * blend;
-//     ratio2 = 0.5f * (1.0f - blend) + ratio2 * blend;
-//
-//     float offsetX = dx * 0.5f * diff;
-//     float offsetY = dy * 0.5f * diff;
-//
-//     float max_disp = POINT_SPACING * 0.5f;
-//     float disp_mag = sqrt(offsetX * offsetX + offsetY * offsetY);
-//     if (disp_mag > max_disp) {
-//       float scale = max_disp / disp_mag;
-//       offsetX *= scale;
-//       offsetY *= scale;
-//     }
-//
-//     if (!(i == 0)) { // dragged point stays fixed
-//       p1.x += offsetX * ratio1;
-//       p1.y += offsetY * ratio1;
-//     }
-//
-//     p2.x -= offsetX * ratio2;
-//     p2.y -= offsetY * ratio2;
-//   }
-
-// --- Tiny backward pass on the last few segments ---
-// int N_back = 7; // last N segments to correct, tune as needed
-// for (int i = NUM_POINTS - 2; i >= NUM_POINTS - 1 - N_back; --i) {
-//   SDL_FPoint &p1 = points[i];
-//   SDL_FPoint &p2 = points[i + 1];
-//
-//   float dx = p2.x - p1.x;
-//   float dy = p2.y - p1.y;
-//   float dist = sqrtf(dx * dx + dy * dy);
-//   float diff = (dist - POINT_SPACING) / dist;
-//
-//   float offsetX = dx * 0.5f * diff;
-//   float offsetY = dy * 0.5f * diff;
-//
-//   // Only move p1 slightly; keep p2 (heavy ball) fully free
-//   float back_fraction = 0.7f; // small fraction
-//   p1.x += offsetX * back_fraction;
-//   p1.y += offsetY * back_fraction;
-//   p2.x -= offsetX * back_fraction;
-//   p2.y -= offsetY * back_fraction;
-// }
-//}
-
 void Rope::backward_constraints() {
   for (int i = NUM_POINTS - 2; i >= 0; --i) {
     SDL_FPoint &p1 = points[i];
@@ -167,7 +109,7 @@ void Rope::backward_constraints() {
 
     // Don't move the fixed end ball
     if (i + 1 == NUM_POINTS - 1) {
-      float ball_move_fraction = 0.01f; // small fraction of constraint offset
+      float ball_move_fraction = 0.005f; // small fraction of constraint offset
       p2.x -= offsetX * ball_move_fraction;
       p2.y -= offsetY * ball_move_fraction;
     } else {
@@ -239,3 +181,71 @@ void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
               static_cast<int>(screenPoints[NUM_POINTS - 1].y),
               static_cast<int>(BALL_RADIUS));
 }
+
+// Experiments with mass-aware constraints and additional backward constraints
+//--------------------------------
+// void Rope::forward_constraints() {
+//   // --- Forward pass with mass weighting ---
+//   for (int i = 0; i < NUM_POINTS - 1; ++i) {
+//     SDL_FPoint &p1 = points[i];
+//     SDL_FPoint &p2 = points[i + 1];
+//
+//     float dx = p2.x - p1.x;
+//     float dy = p2.y - p1.y;
+//     float dist = sqrtf(dx * dx + dy * dy);
+//     float diff = (dist - POINT_SPACING) / dist;
+//
+//     // Mass-aware offsets
+//     float m1 = masses[i];
+//     float m2 = masses[i + 1];
+//     float sum = m1 + m2;
+//
+//     float ratio1 = m2 / sum; // p1 moves more if p2 is heavy
+//     float ratio2 = m1 / sum; // p2 moves more if p1 is light
+//     // Soften the ratios by blending with 0.5 (equal split)
+//     float blend = 0.8f; // 0 = full 0.5, 1 = full mass weighting
+//     ratio1 = 0.5f * (1.0f - blend) + ratio1 * blend;
+//     ratio2 = 0.5f * (1.0f - blend) + ratio2 * blend;
+//
+//     float offsetX = dx * 0.5f * diff;
+//     float offsetY = dy * 0.5f * diff;
+//
+//     float max_disp = POINT_SPACING * 0.5f;
+//     float disp_mag = sqrt(offsetX * offsetX + offsetY * offsetY);
+//     if (disp_mag > max_disp) {
+//       float scale = max_disp / disp_mag;
+//       offsetX *= scale;
+//       offsetY *= scale;
+//     }
+//
+//     if (!(i == 0)) { // dragged point stays fixed
+//       p1.x += offsetX * ratio1;
+//       p1.y += offsetY * ratio1;
+//     }
+//
+//     p2.x -= offsetX * ratio2;
+//     p2.y -= offsetY * ratio2;
+//   }
+
+// --- Tiny backward pass on the last few segments ---
+// int N_back = 7; // last N segments to correct, tune as needed
+// for (int i = NUM_POINTS - 2; i >= NUM_POINTS - 1 - N_back; --i) {
+//   SDL_FPoint &p1 = points[i];
+//   SDL_FPoint &p2 = points[i + 1];
+//
+//   float dx = p2.x - p1.x;
+//   float dy = p2.y - p1.y;
+//   float dist = sqrtf(dx * dx + dy * dy);
+//   float diff = (dist - POINT_SPACING) / dist;
+//
+//   float offsetX = dx * 0.5f * diff;
+//   float offsetY = dy * 0.5f * diff;
+//
+//   // Only move p1 slightly; keep p2 (heavy ball) fully free
+//   float back_fraction = 0.7f; // small fraction
+//   p1.x += offsetX * back_fraction;
+//   p1.y += offsetY * back_fraction;
+//   p2.x -= offsetX * back_fraction;
+//   p2.y -= offsetY * back_fraction;
+// }
+//}
