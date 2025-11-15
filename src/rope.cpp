@@ -40,7 +40,7 @@ float Rope::get_speed() {
 
   float alpha = 0.1f; // smoothing factor, 0.05–0.3 works well
   filtered = filtered + alpha * (raw - filtered);
-  filtered /= 50.0f;
+  // filtered /= 50.0f;
 
   return (filtered > 0.4f ? filtered : 0.0f);
 }
@@ -62,7 +62,7 @@ void Rope::solve_physics() {
     // --- air drag ---
     SDL_FPoint vel = points[i] - prevPoints[i];
     if (i == NUM_POINTS - 1)
-      end_speed = magnitude(vel) / DT;
+      end_speed = magnitude(vel); // / DT;
 
     float vMag = sqrtf(vel.x * vel.x + vel.y * vel.y);
     if (vMag > 1e-4f) {

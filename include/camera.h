@@ -16,5 +16,7 @@ public:
 
   SDL_FPoint get_pos();
 
+  SDL_FPoint rand_point_in_view();
+
   void update(SDL_FPoint anchor, SDL_FPoint end);
 };
