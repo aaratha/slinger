@@ -98,6 +98,26 @@ void EnemySystem::update(Camera &camera, vector<float> &x_rope,
         y_curr[j] -= correction.y;
       }
     }
+
+    for (int iter = 0; iter < 8; iter++) {
+      // collisions with rope
+      for (int j = 0; j < NUM_POINTS - 1; j++) {
+        // solve point inside circle
+        float x_diff = x_rope[j] - x_curr[i];
+        float y_diff = y_rope[j] - y_curr[i];
+        if (x_diff * x_diff + y_diff * y_diff <= radius[i] * radius[i]) {
+          SDL_FPoint n_vec = {x_diff, y_diff};
+          float n_mag = magnitude(n_vec);
+          SDL_FPoint normal = n_vec / n_mag;
+
+          SDL_FPoint correction = (radius[i] - n_mag) / 2.0f * normal;
+          x_rope[j] += correction.x;
+          y_rope[j] += correction.y;
+          x_curr[i] -= correction.x;
+          y_curr[i] -= correction.y;
+        }
+      }
+    }
   }
 }
 
