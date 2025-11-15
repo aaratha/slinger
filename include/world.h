@@ -29,5 +29,5 @@ public:
 
   ~Background();
 
-  void draw(SDL_Renderer *renderer, Camera *camera);
+  void draw(SDL_Renderer *renderer, Camera &camera);
 };

@@ -41,7 +41,7 @@ Background::~Background() {
     SDL_DestroyTexture(layer.texture);
 }
 
-void Background::draw(SDL_Renderer *renderer, Camera *camera) {
+void Background::draw(SDL_Renderer *renderer, Camera &camera) {
   for (auto &layer : layers) {
     float texW, texH;
     SDL_GetTextureSize(layer.texture, &texW, &texH);
@@ -50,7 +50,7 @@ void Background::draw(SDL_Renderer *renderer, Camera *camera) {
     float drawW = texW * scale;
     float drawH = texH * scale;
 
-    SDL_FPoint camera_pos = camera->get_pos();
+    SDL_FPoint camera_pos = camera.get_pos();
 
     float scrollFactor = layer.scrollSpeed;
 

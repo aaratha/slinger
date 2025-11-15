@@ -27,13 +27,14 @@ void EnemySystem::add(EnemyType type, float x, float y) {
   }
 }
 
-void EnemySystem::update(Camera *camera, SDL_FPoint anchor) {
+void EnemySystem::update(Camera &camera, vector<float> &x_rope,
+                         vector<float> &y_rope) {
   // spawn process
   timer += DT;
   if (timer >= spawn_time) {
     timer = 0.0f;
 
-    SDL_FPoint p = camera->rand_point_in_view();
+    SDL_FPoint p = camera.rand_point_in_view();
     add(EnemyType::Base, p.x, p.y);
     count += 1;
   }
@@ -42,7 +43,7 @@ void EnemySystem::update(Camera *camera, SDL_FPoint anchor) {
   for (int i = 0; i < count; i++) {
 
     // main physics
-    SDL_FPoint attraction_vec = {anchor.x - x_curr[i], anchor.y - y_curr[i]};
+    SDL_FPoint attraction_vec = {x_rope[0] - x_curr[i], y_rope[0] - y_curr[i]};
     float attraction_vec_mag = magnitude(attraction_vec);
     SDL_FPoint attraction_dir = attraction_vec / attraction_vec_mag;
 
@@ -100,9 +101,9 @@ void EnemySystem::update(Camera *camera, SDL_FPoint anchor) {
   }
 }
 
-void EnemySystem::draw(SDL_Renderer *renderer, Camera *camera) {
+void EnemySystem::draw(SDL_Renderer *renderer, Camera &camera) {
   for (int i = 0; i < count; i++) {
-    SDL_FPoint screen_pos = camera->worldToScreen({x_curr[i], y_curr[i]});
+    SDL_FPoint screen_pos = camera.worldToScreen({x_curr[i], y_curr[i]});
     draw_circle(renderer, screen_pos.x, screen_pos.y, radius[i]);
   }
 }

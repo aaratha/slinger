@@ -1,17 +1,20 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <vector>
 
 #include "camera.h"
 #include "utils.h"
 
+using namespace std;
+
 class Rope {
-  float x_curr[NUM_POINTS];
-  float y_curr[NUM_POINTS];
-  float x_prev[NUM_POINTS];
-  float y_prev[NUM_POINTS];
-  SDL_FPoint screen_points[NUM_POINTS];
-  float masses[NUM_POINTS];
+  vector<float> x_curr;
+  vector<float> y_curr;
+  vector<float> x_prev;
+  vector<float> y_prev;
+  vector<SDL_FPoint> screen_points;
+  vector<float> masses;
   bool anchored = false;
   int brightness = 0;
   float end_speed;
@@ -23,11 +26,13 @@ public:
   SDL_FPoint get_anchor();
   float get_altitude();
   float get_speed();
+  vector<float> &get_x();
+  vector<float> &get_y();
   void solve_collisions(float &y);
   void solve_physics();
   void forward_constraints();
   void backward_constraints();
   void solve_constraints();
   void update(SDL_FPoint mousePos);
-  void draw(SDL_Renderer *renderer, Camera *camera);
+  void draw(SDL_Renderer *renderer, Camera &camera);
 };

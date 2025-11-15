@@ -29,6 +29,6 @@ public:
   ~EnemySystem();
 
   void add(EnemyType type, float x, float y);
-  void update(Camera *camera, SDL_FPoint anchor);
-  void draw(SDL_Renderer *renderer, Camera *camera);
+  void update(Camera &camera, vector<float> &x_rope, vector<float> &y_rope);
+  void draw(SDL_Renderer *renderer, Camera &camera);
 };

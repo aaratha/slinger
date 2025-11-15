@@ -61,7 +61,7 @@ int main(int, char **) {
 
     rope.update(mouseWorld);
     camera.update(rope.get_anchor(), rope.get_end());
-    enemy_system.update(&camera, rope.get_anchor());
+    enemy_system.update(camera, rope.get_x(), rope.get_y());
     gGS.altitude = rope.get_altitude();
     gGS.speed = rope.get_speed();
 
@@ -70,9 +70,9 @@ int main(int, char **) {
 
     SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
 
-    bg.draw(renderer, &camera);
-    rope.draw(renderer, &camera);
-    enemy_system.draw(renderer, &camera);
+    bg.draw(renderer, camera);
+    rope.draw(renderer, camera);
+    enemy_system.draw(renderer, camera);
     ui.draw(renderer);
 
     SDL_RenderPresent(renderer);

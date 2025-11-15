@@ -6,6 +6,13 @@
 #include <algorithm>
 
 Rope::Rope() {
+  x_curr.reserve(NUM_POINTS);
+  y_curr.reserve(NUM_POINTS);
+  x_prev.reserve(NUM_POINTS);
+  y_prev.reserve(NUM_POINTS);
+  screen_points.reserve(NUM_POINTS);
+  masses.reserve(NUM_POINTS);
+
   for (int i = 0; i < NUM_POINTS; ++i) {
     x_curr[i] = gGS.winW / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
                 i * POINT_SPACING;
@@ -54,6 +61,9 @@ void Rope::solve_collisions(float &y) {
     y -= diff;
   }
 }
+
+vector<float> &Rope::get_x() { return x_curr; }
+vector<float> &Rope::get_y() { return y_curr; }
 
 void Rope::solve_physics() {
   SDL_FPoint G = {0.0f, GRAVITY};
@@ -194,9 +204,9 @@ void Rope::update(SDL_FPoint mousePos) {
   solve_constraints();
 }
 
-void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
+void Rope::draw(SDL_Renderer *renderer, Camera &camera) {
   for (int i = 0; i < NUM_POINTS; i++) {
-    screen_points[i] = camera->worldToScreen({x_curr[i], y_curr[i]});
+    screen_points[i] = camera.worldToScreen({x_curr[i], y_curr[i]});
   }
 
   float ropeY = get_end().y;
@@ -213,7 +223,7 @@ void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
   SDL_SetRenderDrawColor(renderer, brightness, brightness, brightness, 255);
   // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 
-  SDL_RenderLines(renderer, screen_points, NUM_POINTS);
+  SDL_RenderLines(renderer, screen_points.data(), NUM_POINTS);
   draw_circle(renderer, static_cast<int>(screen_points[NUM_POINTS - 1].x),
               static_cast<int>(screen_points[NUM_POINTS - 1].y),
               static_cast<int>(BALL_RADIUS));
