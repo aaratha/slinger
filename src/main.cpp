@@ -60,6 +60,7 @@ int main(int, char **) {
     rope.update(mouseWorld);
     camera.update(rope.get_anchor(), rope.get_end());
     gGS.altitude = rope.get_altitude();
+    gGS.speed = rope.get_speed();
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);

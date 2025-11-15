@@ -34,5 +34,7 @@ SDL_FPoint lerp2D(SDL_FPoint a, SDL_FPoint b, float t);
 
 float point_distance(const SDL_FPoint &a, const SDL_FPoint &b);
 
+float magnitude(SDL_FPoint &a);
+
 void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
                  int32_t radius);

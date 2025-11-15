@@ -12,6 +12,7 @@ class Rope {
   float masses[NUM_POINTS];
   bool anchored = false;
   int brightness = 0;
+  float end_speed;
 
 public:
   Rope();
@@ -19,6 +20,7 @@ public:
   SDL_FPoint get_end();
   SDL_FPoint get_anchor();
   float get_altitude();
+  float get_speed();
   void solve_collisions(SDL_FPoint *point);
   void solve_physics();
   void forward_constraints();

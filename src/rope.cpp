@@ -25,6 +25,26 @@ SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
 
 SDL_FPoint Rope::get_anchor() { return points[0]; }
 
+float Rope::get_altitude() {
+  SDL_FPoint midpoint = (get_end() + get_anchor()) / 2.0f;
+  float altitude = gGS.winH - midpoint.y - FLOOR_HEIGHT;
+  return altitude / 50.0f;
+}
+
+float Rope::get_speed() {
+  // SDL_FPoint vel = points[NUM_POINTS - 1] - prevPoints[NUM_POINTS - 1];
+  // float speed = magnitude(vel) / DT;
+  // return speed;
+  float raw = end_speed;
+  static float filtered = 0.0f;
+
+  float alpha = 0.1f; // smoothing factor, 0.05–0.3 works well
+  filtered = filtered + alpha * (raw - filtered);
+  filtered /= 50.0f;
+
+  return (filtered > 0.4f ? filtered : 0.0f);
+}
+
 void Rope::solve_collisions(SDL_FPoint *point) {
   if (point->y >= gGS.winH - FLOOR_HEIGHT) {
     float diff = point->y - (gGS.winH - FLOOR_HEIGHT);
@@ -41,6 +61,9 @@ void Rope::solve_physics() {
 
     // --- air drag ---
     SDL_FPoint vel = points[i] - prevPoints[i];
+    if (i == NUM_POINTS - 1)
+      end_speed = magnitude(vel) / DT;
+
     float vMag = sqrtf(vel.x * vel.x + vel.y * vel.y);
     if (vMag > 1e-4f) {
       SDL_FPoint vDir = {vel.x / vMag, vel.y / vMag};
@@ -134,11 +157,6 @@ void Rope::solve_constraints() {
   }
 }
 
-float Rope::get_altitude() {
-  SDL_FPoint midpoint = (get_end() + get_anchor()) / 2.0f;
-  return gGS.winH - midpoint.y - FLOOR_HEIGHT;
-}
-
 void Rope::update(SDL_FPoint mousePos) {
 
   // First point follows the target
@@ -161,8 +179,6 @@ void Rope::update(SDL_FPoint mousePos) {
 
   // Enforce constraints
   solve_constraints();
-
-  gGS.altitude = get_end().y;
 }
 
 void Rope::draw(SDL_Renderer *renderer, Camera *camera) {

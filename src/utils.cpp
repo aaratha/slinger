@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <cmath>
 
 SDL_FPoint operator*(float scalar, const SDL_FPoint &point) {
   return SDL_FPoint{scalar * point.x, scalar * point.y};
@@ -45,6 +46,8 @@ float point_distance(const SDL_FPoint &a, const SDL_FPoint &b) {
   float dy = a.y - b.y;
   return sqrtf(dx * dx + dy * dy);
 }
+
+float magnitude(SDL_FPoint &a) { return sqrtf(a.x * a.x + a.y * a.y); }
 
 void draw_circle(SDL_Renderer *renderer, int32_t centerX, int32_t centerY,
                  int32_t radius) {
