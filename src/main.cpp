@@ -29,7 +29,7 @@ int main(int, char **) {
   Rope rope;
   Background bg(renderer);
   Camera camera;
-  Enemies enemies;
+  EnemySystem enemy_system;
 
   bool running = true;
   int mouseX = 0, mouseY = 0;
@@ -61,7 +61,7 @@ int main(int, char **) {
 
     rope.update(mouseWorld);
     camera.update(rope.get_anchor(), rope.get_end());
-    enemies.update(&camera, rope.get_anchor());
+    enemy_system.update(&camera, rope.get_anchor());
     gGS.altitude = rope.get_altitude();
     gGS.speed = rope.get_speed();
 
@@ -72,7 +72,7 @@ int main(int, char **) {
 
     bg.draw(renderer, &camera);
     rope.draw(renderer, &camera);
-    enemies.draw(renderer, &camera);
+    enemy_system.draw(renderer, &camera);
     ui.draw(renderer);
 
     SDL_RenderPresent(renderer);

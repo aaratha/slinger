@@ -7,31 +7,28 @@
 
 using namespace std;
 
-class Enemy {
-  SDL_FPoint pos;
-  SDL_FPoint prev_pos;
-  float attraction;
-  float radius;
-  float mass;
+enum class EnemyType { Base };
 
-public:
-  Enemy(SDL_FPoint p);
-  ~Enemy();
-
-  float get_attraction();
-  void update(SDL_FPoint anchor);
-  void draw(SDL_Renderer *renderer, Camera *camera);
-};
-
-class Enemies {
+class EnemySystem {
+  int count;
   float timer;
   float spawn_time;
-  vector<unique_ptr<Enemy>> enemies;
+
+  vector<EnemyType> enemy_type;
+  vector<float> x_curr;
+  vector<float> y_curr;
+  vector<float> x_prev;
+  vector<float> y_prev;
+  vector<float> attraction;
+  vector<float> mass;
+  vector<float> radius;
+  vector<float> max_vel;
 
 public:
-  Enemies();
-  ~Enemies();
+  EnemySystem();
+  ~EnemySystem();
 
+  void add(EnemyType type, float x, float y);
   void update(Camera *camera, SDL_FPoint anchor);
   void draw(SDL_Renderer *renderer, Camera *camera);
 };

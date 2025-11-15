@@ -3,77 +3,85 @@
 #include "globals.h"
 #include "utils.h"
 
-// -----------Enemy-----------
-
-Enemy::Enemy(SDL_FPoint p) {
-  pos = p;
-  prev_pos = p;
-  attraction = 1000.0f;
-  radius = 10.0f;
-  mass = 1.0f;
-}
-
-Enemy::~Enemy() {}
-
-float Enemy::get_attraction() { return attraction; }
-
-void Enemy::update(SDL_FPoint anchor) {
-  // main physics
-  SDL_FPoint attraction_vec = anchor - pos;
-  float attraction_vec_mag = magnitude(attraction_vec);
-  SDL_FPoint attraction_dir = attraction_vec / attraction_vec_mag;
-
-  SDL_FPoint f = get_attraction() * attraction_dir;
-
-  SDL_FPoint vel = pos - prev_pos;
-  vel *= DAMPING;
-  SDL_FPoint f_drag = -AIR_RESISTANCE * vel;
-  f += f_drag;
-
-  SDL_FPoint accel = f / mass;
-
-  SDL_FPoint new_pos = pos + vel + DT * DT * accel;
-  prev_pos = pos;
-  pos = new_pos;
-
-  // collisions
-  if (pos.y >= gGS.winH - FLOOR_HEIGHT) {
-    float diff = pos.y - (gGS.winH - FLOOR_HEIGHT);
-    pos.y -= diff;
-  }
-}
-
-void Enemy::draw(SDL_Renderer *renderer, Camera *camera) {
-  SDL_FPoint screen_pos = camera->worldToScreen(pos);
-  draw_circle(renderer, screen_pos.x, screen_pos.y, radius);
-}
-
-// -----------Enemies-----------
-
-Enemies::Enemies() {
+EnemySystem::EnemySystem() {
+  count = 0;
   timer = 0.0f;
   spawn_time = 2.0f;
 }
 
-Enemies::~Enemies() {}
+EnemySystem::~EnemySystem() {}
 
-void Enemies::update(Camera *camera, SDL_FPoint anchor) {
+void EnemySystem::add(EnemyType type, float x, float y) {
+  if (type == EnemyType::Base) {
+    enemy_type.push_back(EnemyType::Base);
+
+    x_curr.push_back(x);
+    y_curr.push_back(y);
+    x_prev.push_back(x);
+    y_prev.push_back(y);
+
+    attraction.push_back(1000.0f);
+    radius.push_back(10.0f);
+    mass.push_back(1.0f);
+    max_vel.push_back(10.0f);
+  }
+}
+
+void EnemySystem::update(Camera *camera, SDL_FPoint anchor) {
   // spawn process
   timer += DT;
   if (timer >= spawn_time) {
     timer = 0.0f;
+
     SDL_FPoint p = camera->rand_point_in_view();
-    enemies.push_back(make_unique<Enemy>(p));
+    add(EnemyType::Base, p.x, p.y);
+    count += 1;
   }
 
   // physics process
-  for (auto &e : enemies) {
-    e->update(anchor);
+  for (int i = 0; i < count; i++) {
+
+    // main physics
+    SDL_FPoint attraction_vec = {anchor.x - x_curr[i], anchor.y - y_curr[i]};
+    float attraction_vec_mag = magnitude(attraction_vec);
+    SDL_FPoint attraction_dir = attraction_vec / attraction_vec_mag;
+
+    SDL_FPoint f = attraction[i] * attraction_dir;
+
+    SDL_FPoint vel = {x_curr[i] - x_prev[i], y_curr[i] - y_prev[i]};
+    vel *= DAMPING;
+
+    // clamp velocity to vel_mag
+    float vel_mag = magnitude(vel);
+    if (vel_mag > max_vel[i]) {
+      float ratio = max_vel[i] / vel_mag;
+      vel *= ratio;
+    }
+
+    SDL_FPoint f_drag = -AIR_RESISTANCE * vel;
+    f += f_drag;
+
+    SDL_FPoint accel = f / mass[i];
+
+    float x_new = x_curr[i] + vel.x + DT * DT * accel.x;
+    x_prev[i] = x_curr[i];
+    x_curr[i] = x_new;
+
+    float y_new = y_curr[i] + vel.y + DT * DT * accel.y;
+    y_prev[i] = y_curr[i];
+    y_curr[i] = y_new;
+
+    // collisions
+    if (y_curr[i] >= gGS.winH - FLOOR_HEIGHT) {
+      float diff = y_curr[i] - (gGS.winH - FLOOR_HEIGHT);
+      y_curr[i] -= diff;
+    }
   }
 }
 
-void Enemies::draw(SDL_Renderer *renderer, Camera *camera) {
-  for (auto &e : enemies) {
-    e->draw(renderer, camera);
+void EnemySystem::draw(SDL_Renderer *renderer, Camera *camera) {
+  for (int i = 0; i < count; i++) {
+    SDL_FPoint screen_pos = camera->worldToScreen({x_curr[i], y_curr[i]});
+    draw_circle(renderer, screen_pos.x, screen_pos.y, radius[i]);
   }
 }
