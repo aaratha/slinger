@@ -7,11 +7,12 @@
 
 Rope::Rope() {
   for (int i = 0; i < NUM_POINTS; ++i) {
-    points[i] = {gGS.winW / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
-                     i * POINT_SPACING,
-                 gGS.winH / 2.0f};
-    prevPoints[i] = points[i];
-    screenPoints[i] = points[i];
+    x_curr[i] = gGS.winW / 2.0f - (NUM_POINTS / 2.0f * POINT_SPACING) +
+                i * POINT_SPACING;
+    y_curr[i] = gGS.winH / 2.0f;
+    x_prev[i] = x_curr[i];
+    y_prev[i] = y_curr[i];
+    screen_points[i] = {x_curr[i], y_curr[i]};
     if (i == NUM_POINTS - 1)
       masses[i] = 10.0f; // Last point is the ball
     else
@@ -21,9 +22,11 @@ Rope::Rope() {
 
 Rope::~Rope() {}
 
-SDL_FPoint Rope::get_end() { return points[NUM_POINTS - 1]; }
+SDL_FPoint Rope::get_end() {
+  return {x_curr[NUM_POINTS - 1], y_curr[NUM_POINTS - 1]};
+}
 
-SDL_FPoint Rope::get_anchor() { return points[0]; }
+SDL_FPoint Rope::get_anchor() { return {x_curr[0], y_curr[0]}; }
 
 float Rope::get_altitude() {
   SDL_FPoint midpoint = (get_end() + get_anchor()) / 2.0f;
@@ -45,10 +48,10 @@ float Rope::get_speed() {
   return (filtered > 0.4f ? filtered : 0.0f);
 }
 
-void Rope::solve_collisions(SDL_FPoint *point) {
-  if (point->y >= gGS.winH - FLOOR_HEIGHT) {
-    float diff = point->y - (gGS.winH - FLOOR_HEIGHT);
-    point->y -= diff;
+void Rope::solve_collisions(float &y) {
+  if (y >= gGS.winH - FLOOR_HEIGHT) {
+    float diff = y - (gGS.winH - FLOOR_HEIGHT);
+    y -= diff;
   }
 }
 
@@ -60,7 +63,7 @@ void Rope::solve_physics() {
     SDL_FPoint f = masses[i] * G;
 
     // --- air drag ---
-    SDL_FPoint vel = points[i] - prevPoints[i];
+    SDL_FPoint vel = {x_curr[i] - x_prev[i], y_curr[i] - y_prev[i]};
     if (i == NUM_POINTS - 1)
       end_speed = magnitude(vel); // / DT;
 
@@ -72,7 +75,7 @@ void Rope::solve_physics() {
     }
 
     // --- floor friction (horizontal only) ---
-    if (points[i].y >= gGS.winH - FLOOR_HEIGHT) {
+    if (y_curr[i] >= gGS.winH - FLOOR_HEIGHT) {
       // Only apply if moving horizontally
       float vx = vel.x;
       if (fabsf(vx) > 1e-5f) {
@@ -87,21 +90,26 @@ void Rope::solve_physics() {
     vel *= DAMPING;
     SDL_FPoint a = f / masses[i];
 
-    SDL_FPoint newPos = points[i] + vel + DT * DT * a;
-    prevPoints[i] = points[i];
-    points[i] = newPos;
+    float x_new = x_curr[i] + vel.x + DT * DT * a.x;
+    float y_new = y_curr[i] + vel.y + DT * DT * a.y;
+    x_prev[i] = x_curr[i];
+    y_prev[i] = y_curr[i];
+    x_curr[i] = x_new;
+    y_curr[i] = y_new;
 
-    solve_collisions(&points[i]);
+    solve_collisions(y_curr[i]);
   }
 }
 
 void Rope::forward_constraints() {
   for (int i = 0; i < NUM_POINTS - 1; ++i) {
-    SDL_FPoint &p1 = points[i];
-    SDL_FPoint &p2 = points[i + 1];
+    float &x1 = x_curr[i];
+    float &y1 = y_curr[i];
+    float &x2 = x_curr[i + 1];
+    float &y2 = y_curr[i + 1];
 
-    float dx = p2.x - p1.x;
-    float dy = p2.y - p1.y;
+    float dx = x2 - x1;
+    float dy = y2 - y1;
     float dist = sqrtf(dx * dx + dy * dy);
     float diff = (dist - POINT_SPACING) / dist;
 
@@ -109,22 +117,24 @@ void Rope::forward_constraints() {
     float offsetY = dy * 0.5f * diff;
 
     // Don't move the dragged point
-    if (!(i == 0)) {
-      p1.x += offsetX;
-      p1.y += offsetY;
+    if (i != 0) {
+      x1 += offsetX;
+      y1 += offsetY;
     }
-    p2.x -= offsetX;
-    p2.y -= offsetY;
+    x2 -= offsetX;
+    y2 -= offsetY;
   }
 }
 
 void Rope::backward_constraints() {
   for (int i = NUM_POINTS - 2; i >= 0; --i) {
-    SDL_FPoint &p1 = points[i];
-    SDL_FPoint &p2 = points[i + 1];
+    float &x1 = x_curr[i];
+    float &y1 = y_curr[i];
+    float &x2 = x_curr[i + 1];
+    float &y2 = y_curr[i + 1];
 
-    float dx = p2.x - p1.x;
-    float dy = p2.y - p1.y;
+    float dx = x2 - x1;
+    float dy = y2 - y1;
     float dist = sqrtf(dx * dx + dy * dy);
     float diff = (dist - POINT_SPACING) / dist;
 
@@ -134,14 +144,14 @@ void Rope::backward_constraints() {
     // Don't move the fixed end ball
     if (i + 1 == NUM_POINTS - 1) {
       float ball_move_fraction = 0.005f; // small fraction of constraint offset
-      p2.x -= offsetX * ball_move_fraction;
-      p2.y -= offsetY * ball_move_fraction;
+      x1 -= offsetX * ball_move_fraction;
+      y1 -= offsetY * ball_move_fraction;
     } else {
-      p2.x -= offsetX;
-      p2.y -= offsetY;
+      x2 -= offsetX;
+      y2 -= offsetY;
     }
-    p1.x += offsetX;
-    p1.y += offsetY;
+    x1 += offsetX;
+    y1 += offsetY;
   }
 }
 
@@ -163,12 +173,15 @@ void Rope::update(SDL_FPoint mousePos) {
 
   if (gGS.isDragging) {
     if (!anchored) {
-      points[0] += 0.2 * (mousePos - points[0]);
-      if (point_distance(points[0], mousePos) < 4.0f)
+      x_curr[0] += 0.2 * (mousePos.x - x_curr[0]);
+      y_curr[0] += 0.2 * (mousePos.y - y_curr[0]);
+      if (point_distance({x_curr[0], y_curr[0]}, mousePos) < 4.0f)
         anchored = true;
     } else {
-      points[0] = mousePos;
-      prevPoints[0] = points[0]; // <-- resets motion to zero
+      x_curr[0] = mousePos.x;
+      y_curr[0] = mousePos.y;
+      x_prev[0] = x_curr[0];
+      y_prev[0] = y_curr[0];
     }
   } else {
     anchored = false;
@@ -183,7 +196,7 @@ void Rope::update(SDL_FPoint mousePos) {
 
 void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
   for (int i = 0; i < NUM_POINTS; i++) {
-    screenPoints[i] = camera->worldToScreen(points[i]);
+    screen_points[i] = camera->worldToScreen({x_curr[i], y_curr[i]});
   }
 
   float ropeY = get_end().y;
@@ -200,9 +213,9 @@ void Rope::draw(SDL_Renderer *renderer, Camera *camera) {
   SDL_SetRenderDrawColor(renderer, brightness, brightness, brightness, 255);
   // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 
-  SDL_RenderLines(renderer, screenPoints, NUM_POINTS);
-  draw_circle(renderer, static_cast<int>(screenPoints[NUM_POINTS - 1].x),
-              static_cast<int>(screenPoints[NUM_POINTS - 1].y),
+  SDL_RenderLines(renderer, screen_points, NUM_POINTS);
+  draw_circle(renderer, static_cast<int>(screen_points[NUM_POINTS - 1].x),
+              static_cast<int>(screen_points[NUM_POINTS - 1].y),
               static_cast<int>(BALL_RADIUS));
 }
 

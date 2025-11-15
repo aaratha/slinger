@@ -6,9 +6,11 @@
 #include "utils.h"
 
 class Rope {
-  SDL_FPoint points[NUM_POINTS];
-  SDL_FPoint prevPoints[NUM_POINTS];
-  SDL_FPoint screenPoints[NUM_POINTS];
+  float x_curr[NUM_POINTS];
+  float y_curr[NUM_POINTS];
+  float x_prev[NUM_POINTS];
+  float y_prev[NUM_POINTS];
+  SDL_FPoint screen_points[NUM_POINTS];
   float masses[NUM_POINTS];
   bool anchored = false;
   int brightness = 0;
@@ -21,7 +23,7 @@ public:
   SDL_FPoint get_anchor();
   float get_altitude();
   float get_speed();
-  void solve_collisions(SDL_FPoint *point);
+  void solve_collisions(float &y);
   void solve_physics();
   void forward_constraints();
   void backward_constraints();
