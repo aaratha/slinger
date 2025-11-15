@@ -1,8 +1,12 @@
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
+#include <string>
 
+#include "SDL3/SDL_init.h"
 #include "camera.h"
 #include "globals.h"
 #include "rope.h"
+#include "ui.h"
 #include "world.h"
 
 int main(int, char **) {
@@ -10,6 +14,8 @@ int main(int, char **) {
     SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
     return 1;
   }
+
+  UI ui;
 
   gGS.winW = 1000;
   gGS.winH = 720;
@@ -52,8 +58,8 @@ int main(int, char **) {
     SDL_FPoint mouseWorld = camera.screenToWorld(mouseScreen);
 
     rope.update(mouseWorld);
-
     camera.update(rope.get_anchor(), rope.get_end());
+    gGS.altitude = rope.get_altitude();
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -62,6 +68,7 @@ int main(int, char **) {
 
     bg.draw(renderer, &camera);
     rope.draw(renderer, &camera);
+    ui.draw(renderer);
 
     SDL_RenderPresent(renderer);
 

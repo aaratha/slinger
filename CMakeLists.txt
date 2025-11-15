@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Add SDL3 submodule
 add_subdirectory(external/sdl)
+add_subdirectory(external/sdl_ttf)
 
 # Include directories
 include_directories(
@@ -23,7 +24,7 @@ file(GLOB_RECURSE SLINGER_SOURCES
 add_executable(slinger ${SLINGER_SOURCES})
 
 # Link SDL3
-target_link_libraries(slinger PRIVATE SDL3::SDL3)
+target_link_libraries(slinger PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf)
 
 # Copy assets folder to the build directory
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})

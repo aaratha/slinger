@@ -1,4 +1,5 @@
 #include "rope.h"
+#include "SDL3/SDL_rect.h"
 #include "globals.h"
 #include "utils.h"
 
@@ -133,6 +134,11 @@ void Rope::solve_constraints() {
   }
 }
 
+float Rope::get_altitude() {
+  SDL_FPoint midpoint = (get_end() + get_anchor()) / 2.0f;
+  return gGS.winH - midpoint.y - FLOOR_HEIGHT;
+}
+
 void Rope::update(SDL_FPoint mousePos) {
 
   // First point follows the target
@@ -155,6 +161,8 @@ void Rope::update(SDL_FPoint mousePos) {
 
   // Enforce constraints
   solve_constraints();
+
+  gGS.altitude = get_end().y;
 }
 
 void Rope::draw(SDL_Renderer *renderer, Camera *camera) {

@@ -18,6 +18,7 @@ public:
   ~Rope();
   SDL_FPoint get_end();
   SDL_FPoint get_anchor();
+  float get_altitude();
   void solve_collisions(SDL_FPoint *point);
   void solve_physics();
   void forward_constraints();
