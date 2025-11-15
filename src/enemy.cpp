@@ -71,10 +71,31 @@ void EnemySystem::update(Camera *camera, SDL_FPoint anchor) {
     y_prev[i] = y_curr[i];
     y_curr[i] = y_new;
 
-    // collisions
+    // collisions with ground
     if (y_curr[i] >= gGS.winH - FLOOR_HEIGHT) {
       float diff = y_curr[i] - (gGS.winH - FLOOR_HEIGHT);
       y_curr[i] -= diff;
+    }
+
+    // collisions with eachother
+    for (int j = 0; j < count; j++) {
+      if (i == j)
+        continue;
+
+      // check if points are touching
+      SDL_FPoint vec = {x_curr[i] - x_curr[j], y_curr[i] - y_curr[j]};
+      float dist = sqrt(vec.x * vec.x + vec.y * vec.y);
+      SDL_FPoint dir = vec / dist;
+      float sum = radius[i] + radius[j];
+      if (dist <= sum) {
+        float diff = sum - dist;
+        SDL_FPoint correction = (diff * 0.5f) * dir;
+
+        x_curr[i] += correction.x;
+        y_curr[i] += correction.y;
+        x_curr[j] -= correction.x;
+        y_curr[j] -= correction.y;
+      }
     }
   }
 }
