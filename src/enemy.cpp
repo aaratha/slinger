@@ -2,8 +2,28 @@
 
 #include "globals.h"
 #include "utils.h"
+#include <cstdint>
+#include <sys/types.h>
 
-EnemySystem::EnemySystem() {
+EnemyGrid::EnemyGrid(float enemy_radius) { cell_size = enemy_radius * 4.0f; }
+
+EnemyGrid::~EnemyGrid() { clear(); }
+
+void EnemyGrid::clear() { grid.clear(); }
+
+void EnemyGrid::add(float x, float y, int index) {
+  int cell_x = floorf(x / cell_size);
+  int cell_y = floorf(y / cell_size);
+  uint64_t cell_key = (uint64_t)(uint32_t)cell_x << 32 | (uint32_t)cell_y;
+
+  grid[cell_key].push_back(index);
+}
+
+unordered_map<uint64_t, vector<int>> &EnemyGrid::get_grid() { return grid; }
+
+float EnemyGrid::get_cell_size() { return cell_size; }
+
+EnemySystem::EnemySystem() : enemy_grid(gGS.enemy_radius) {
   count = 0;
   timer = 0.0f;
   spawn_time = 2.0f;
@@ -21,9 +41,11 @@ void EnemySystem::add(EnemyType type, float x, float y) {
     y_prev.push_back(y);
 
     attraction.push_back(1000.0f);
-    radius.push_back(10.0f);
+    radius.push_back(gGS.enemy_radius);
     mass.push_back(1.0f);
     max_vel.push_back(10.0f);
+
+    count += 1;
   }
 }
 
@@ -36,7 +58,6 @@ void EnemySystem::update(Camera &camera, vector<float> &x_rope,
 
     SDL_FPoint p = camera.rand_point_in_view();
     add(EnemyType::Base, p.x, p.y);
-    count += 1;
   }
 
   // physics process
@@ -78,27 +99,6 @@ void EnemySystem::update(Camera &camera, vector<float> &x_rope,
       y_curr[i] -= diff;
     }
 
-    // collisions with eachother
-    for (int j = 0; j < count; j++) {
-      if (i == j)
-        continue;
-
-      // check if points are touching
-      SDL_FPoint vec = {x_curr[i] - x_curr[j], y_curr[i] - y_curr[j]};
-      float dist = sqrt(vec.x * vec.x + vec.y * vec.y);
-      SDL_FPoint dir = vec / dist;
-      float sum = radius[i] + radius[j];
-      if (dist <= sum) {
-        float diff = sum - dist;
-        SDL_FPoint correction = (diff * 0.5f) * dir;
-
-        x_curr[i] += correction.x;
-        y_curr[i] += correction.y;
-        x_curr[j] -= correction.x;
-        y_curr[j] -= correction.y;
-      }
-    }
-
     for (int iter = 0; iter < 8; iter++) {
       // collisions with rope
       for (int j = 0; j < NUM_POINTS - 1; j++) {
@@ -115,6 +115,50 @@ void EnemySystem::update(Camera &camera, vector<float> &x_rope,
           y_rope[j] += correction.y;
           x_curr[i] -= correction.x;
           y_curr[i] -= correction.y;
+        }
+      }
+    }
+  }
+
+  // clear grid
+  enemy_grid.clear();
+
+  // add all enemies to grid
+  for (int i = 0; i < count; i++) {
+    enemy_grid.add(x_curr[i], y_curr[i], i);
+  }
+
+  // collisions with eachother
+  unordered_map<uint64_t, vector<int>> &grid = enemy_grid.get_grid();
+  for (int i = 0; i < count; ++i) {
+    int cx = (int)SDL_floorf(x_curr[i] / enemy_grid.get_cell_size());
+    int cy = (int)SDL_floorf(y_curr[i] / enemy_grid.get_cell_size());
+
+    for (int dy = -1; dy <= 1; ++dy) {
+      for (int dx = -1; dx <= 1; ++dx) {
+        int nx = cx + dx, ny = cy + dy;
+        uint64_t key = (uint64_t)(uint32_t)nx << 32 | (uint32_t)ny;
+        auto it = grid.find(key);
+        if (it == grid.end())
+          continue;
+        const vector<int> &bucket = it->second;
+        for (int j : bucket) {
+          if (j <= i)
+            continue; // avoid double work
+          //  check if points are touching
+          SDL_FPoint vec = {x_curr[i] - x_curr[j], y_curr[i] - y_curr[j]};
+          float dist = SDL_sqrt(vec.x * vec.x + vec.y * vec.y);
+          SDL_FPoint dir = vec / dist;
+          float sum = radius[i] + radius[j];
+          if (dist <= sum) {
+            float diff = sum - dist;
+            SDL_FPoint correction = (diff * 0.5f) * dir;
+
+            x_curr[i] += correction.x;
+            y_curr[i] += correction.y;
+            x_curr[j] -= correction.x;
+            y_curr[j] -= correction.y;
+          }
         }
       }
     }

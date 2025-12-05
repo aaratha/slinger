@@ -5,6 +5,7 @@ typedef struct {
   bool isDragging;
   int altitude;
   float speed;
+  float enemy_radius;
 } GameState;
 
 extern GameState gGS;

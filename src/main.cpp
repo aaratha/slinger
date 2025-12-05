@@ -21,6 +21,8 @@ int main(int, char **) {
   gGS.winW = 1000;
   gGS.winH = 720;
   gGS.isDragging = false;
+  gGS.enemy_radius = 10.0f;
+  gGS.enemy_radius = 10.0f;
 
   SDL_Window *window = SDL_CreateWindow("Circle Follow", gGS.winW, gGS.winH,
                                         SDL_WINDOW_RESIZABLE);
@@ -62,6 +64,7 @@ int main(int, char **) {
     rope.update(mouseWorld);
     camera.update(rope.get_anchor(), rope.get_end());
     enemy_system.update(camera, rope.get_x(), rope.get_y());
+
     gGS.altitude = rope.get_altitude();
     gGS.speed = rope.get_speed();
 
